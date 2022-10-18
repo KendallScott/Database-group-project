@@ -1,3 +1,13 @@
+library(DBI)
+library(odbc)
+con <- dbConnect(odbc(),
+                 Driver = "x",
+                 Server="x",
+                 Database="x",
+                 UID = "kindleds_data",
+                 PWD    = rstudioapi::askForPassword("Database password"),
+                 Port ="1443")
+
 # Database-group-project
 
 DS7330 File Organization and Database Management Term Project
