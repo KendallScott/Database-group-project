@@ -4,7 +4,11 @@ DS7330 File Organization and Database Management Term Project
 
 Project Title: Police Shootings in the United States and Underlying Trends
 
-Investigators: · Tadd Backus: tbackus@mail.smu.edu · Varun Gopal: varung@mail.smu.edu · Kendall Scott: kendallscott@mail.smu.edu · Roslyn Smith: roslyns@mail.smu.edu
+Investigators:
+Tadd Backus: tbackus@mail.smu.edu
+Varun Gopal: varung@mail.smu.edu
+Kendall Scott: kendallscott@mail.smu.edu
+Roslyn Smith: roslyns@mail.smu.edu
 
 Problem Statement: What are the trends in police shootings in the United States since 2015?
 
@@ -15,15 +19,10 @@ Methodology: Our primary data source is the Washington Post Police Shootings Dat
 Milestones:
 
 · Identify questions to be answered
-
 · Source primary and supplemental data and create new variables as needed
-
 · Create database to house data
-
 · Populate data
-
 · Perform queries (MySQL, R, Python) to address questions
-
 · Visualize results and provide insights (R Shiny App, charts / other visualizations)
 
 Initial Questions:
