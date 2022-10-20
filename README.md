@@ -1,10 +1,9 @@
 library(DBI)
 library(odbc)
 
-
 con <- dbConnect(odbc(),
                  Driver = "ODBC Driver 13 for SQL Server",
-                 Server="tcp:policeshooting.database.windows.net",
+                 Server="policeshooting.database.windows.net,",
                  Database="police_shootings",
                  UID = "data_admin",
                  PWD    = rstudioapi::askForPassword("Database password"),
