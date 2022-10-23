@@ -1,13 +1,12 @@
 library(DBI)
 library(odbc)
 
-con <- dbConnect(odbc(),
-                 Driver = "ODBC Driver 13 for SQL Server",
-                 Server="policeshooting.database.windows.net,",
-                 Database="police_shootings",
-                 UID = "data_admin",
-                 PWD    = rstudioapi::askForPassword("Database password"),
-                 Port ="1443")
+con <- dbConnect(odbc(), Driver = "ODBC Driver 13 for SQL Server", 
+                 Server="policeshooting.database.windows.net,", 
+                 Database="police_shootings", 
+                 UID = "data_admin", 
+                 PWD = rstudioapi::askForPassword("Database password"),
+                 Port ="1433")
 
 # Database-group-project
 
