@@ -1,0 +1,105 @@
+select 
+distinct 
+race 
+from dbo.Police_Shootings_Geo_Location
+
+SELECT 
+	count([id]) as Victims,
+	[race],
+	[state], 
+    [year]
+    into #Police_Shootings_Geo_Location_State_group
+from  dbo.Police_Shootings_Geo_Location
+group by [race],[state], [year]
+/*
+drop table #Police_Shootings_Geo_Location_State_group
+
+select top 1000 * from #Police_Shootings_Geo_Location_State_group
+drop table #Police_Shootings_Geo_Location_County_group
+*/
+select sum(case when race is not null then [Victims] end) as victims_total, 
+[race],
+[state],
+[year]
+into #state_aggs
+from #Police_Shootings_Geo_Location_State_group
+group by [race], [state] , [year]
+/*
+drop table #county_aggs
+
+select * from #county_aggs where race is not null
+*/
+
+SELECT
+a.[state],
+a.[year],
+sum(a.Victims) as Total_Victims,
+sum(case when a.[race] is not null then a.[Victims] end) as Total_Victims_with_Race,
+sum(case when a.[race]='B' then a.[Victims] end) as Black_total,
+sum(case when a.[race]='W' then a.[Victims] end) as White_total,
+sum(case when a.[race]='H' then a.[Victims] end) as Hispanic_total,
+sum(case when a.[race]='A' then a.[Victims] end) as Asian_total,
+sum(case when a.[race]='N' then a.[Victims] end) as Non_Hispanic_total,
+(sum(case when a.[race] is not null then a.[Victims] end)*1.0)/sum(a.Victims) as perc_Victims_with_Race,
+(sum(case when a.[race]='B' then a.[Victims] end)*1.0)/sum(case when a.[race] is not null then a.[Victims] end) as Black_perc,
+(sum(case when a.[race]='W' then a.[Victims] end)*1.0)/sum(case when a.[race] is not null then a.[Victims] end) as White_perc,
+(sum(case when a.[race]='H' then a.[Victims] end)*1.0)/sum(case when a.[race] is not null then a.[Victims] end) as Hispanic_perc,
+(sum(case when a.[race]='A' then a.[Victims] end)*1.0)/sum(case when a.[race] is not null then a.[Victims] end) as Asian_perc,
+(sum(case when a.[race]='N' then a.[Victims] end)*1.0)/sum(case when a.[race] is not null then a.[Victims] end) as Non_Hispanic_perc
+into #aggs_by_state_with_race_percent
+from #Police_Shootings_Geo_Location_State_group a
+group by a.[state], a.[year];
+
+/*checking totals by year*/
+SELECT
+a.[year],
+sum(a.Victims) as Total_Victims
+from #Police_Shootings_Geo_Location_State_group a
+group by a.[year]
+order by year asc;
+
+SELECT 
+      [State]
+      ,[Year]
+      ,SUM([Total_Population]) AS Total_Population
+      ,SUM([White_Alone]) AS White_Alone
+      ,SUM([Black_Alone]) AS Black_Alone
+      ,SUM([American_Indian_or_Alaskan_Native]) AS American_Indian_or_Alaskan_Native
+      ,SUM([Asian_Alone]) AS Asian_Alone
+      ,SUM([Not_Hispanic]) AS Not_Hispanic
+      ,SUM([Hispanic]) AS Hispanic
+      into #population_agg
+FROM [dbo].[Population_by_Race]
+where Year>=2015
+and [State] is not null
+GROUP BY [State],[Year];
+
+select top 100 * from #aggs_by_state_with_race_percent
+
+SELECT 
+A.YEAR, 
+a.State,
+sum(a.Total_Population)  as Total_Population,
+SUM(a.White_Alone) as White_Alone_population,
+SUM(a.Black_Alone) as Black_Alone_population,
+SUM(a.American_Indian_or_Alaskan_Native) as American_Indian_or_Alaskan_Native_population,
+SUM(a.Asian_Alone) as Asian_Alone_population,
+SUM(a.Not_Hispanic) as Not_Hispanic_population,
+SUM(a.Hispanic) as Hispanic_poulation,
+sum(b.Total_Victims) as Total_Victims, 
+sum(b.Total_Victims_with_Race) as Total_Victims_with_Race,
+sum(Black_total) as Black_total,
+sum(White_total) as White_total,
+sum(Hispanic_total) as Hispanic_total,
+sum(Asian_total) as Asian_total,
+sum(Non_Hispanic_total) as Non_Hispanic_total
+into #police_shootings_state_year
+FROM #population_agg a 
+left join  #aggs_by_state_with_race_percent b on  a.[State]=b.State and a.Year=b.Year
+group by A.YEAR, a.State
+order by a.Year asc;
+
+/*Create perm table*/
+SELECT *
+INTO dbo.Overall_by_State_Year
+FROM #police_shootings_state_year
