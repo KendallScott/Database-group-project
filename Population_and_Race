@@ -103,3 +103,12 @@ order by a.Year asc;
 SELECT *
 INTO dbo.Overall_by_State_Year
 FROM #police_shootings_state_year
+
+/*aggs of percent of population victims*/
+SELECT 
+      [State]
+      ,sum([Total_Victims] *1.0000) /sum([Total_Population])  as perc_victims
+      ,sum([Total_Victims_with_Race]*1.0)/sum([Total_Victims]) as perc_with_race 
+  FROM [dbo].[Overall_by_State_Year]
+  group by [YEAR],[State]
+  order by perc_victims desc
