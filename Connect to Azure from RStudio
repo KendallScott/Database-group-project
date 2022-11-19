@@ -1,0 +1,16 @@
+Download ODBC Driver for SQL Server - Microsoft Learn
+https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver16
+
+Test to make sure ODBC Driver is installed properly (Not really needed but just sanity check)
+
+library(odbc) 
+sort(unique(odbcListDrivers()[[1]])) 
+
+
+Azure_Connection <- DBI::dbConnect(odbc::odbc(), 
+                      Driver = "ODBC Driver 18 for SQL Server", 
+                      Server = "policeshooting.database.windows.net", 
+                      Database = "police_shootings", 
+                      UID = "data_admin", 
+                      PWD = "All_models_are_wrong",
+                      Port = 1433)
