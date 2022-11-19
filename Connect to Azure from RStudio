@@ -15,3 +15,10 @@ Azure_Connection <- DBI::dbConnect(odbc::odbc(),
                       UID = "data_admin", 
                       PWD = "All_models_are_wrong",
                       Port = 1433)
+
+testsql<- dbGetQuery(Azure_Connection,'
+  select top 10*
+  from "police_shootings"."dbo"."shootings"
+  ')
+
+head(testsql)
