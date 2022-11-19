@@ -112,3 +112,80 @@ SELECT
   FROM [dbo].[Overall_by_State_Year]
   group by [YEAR],[State]
   order by perc_victims desc
+  
+  SELECT count([id]) as number_of_victims
+      ,year([date]) as year
+  FROM [dbo].[shootings]
+  group by year([date])
+  order by year([date]) asc
+
+  SELECT count([id]) as number_of_victims
+      ,case when race='B' then 'Black'
+      when race='W' then 'White'
+      when race='H' then 'Hispanic'
+      when race='N' then 'Non Hispanic'
+      when race='A' then 'Asian'
+      else 'Missing'
+      end as race
+  FROM [dbo].[shootings]
+  group by case when race='B' then 'Black'
+      when race='W' then 'White'
+      when race='H' then 'Hispanic'
+      when race='N' then 'Non Hispanic'
+      when race='A' then 'Asian'
+      else 'Missing'
+      end
+  order by number_of_victims desc
+
+  SELECT 
+'Overall' as Race,
+sum([Total_Victims_with_Race])/sum([Total_Population]) as perc_pop
+FROM [dbo].[Overall_by_State_Year]
+union all 
+SELECT 
+'Black' as Race,
+sum([Black_total])/sum([Black_Alone_population]) as perc_pop
+FROM [dbo].[Overall_by_State_Year]
+union all 
+SELECT 
+'Hispanic' as Race,
+sum([Hispanic_total])/sum([Hispanic_poulation]) as perc_pop
+FROM [dbo].[Overall_by_State_Year]
+union all 
+SELECT 
+'White' as Race,
+sum([White_total])/sum([White_Alone_population]) as perc_pop
+FROM [dbo].[Overall_by_State_Year]
+union all 
+SELECT 
+'Asian' as Race,
+sum([Asian_total])/sum([Asian_Alone_population]) as perc_pop
+FROM [dbo].[Overall_by_State_Year]
+union all 
+SELECT 
+'Non Hispanic' as Race,
+sum([Non_Hispanic_total])/sum([Not_Hispanic_population]) as Non_Hispanic_perc_pop
+FROM [dbo].[Overall_by_State_Year]
+
+SELECT 
+count([id]) as Victims,
+case when race='B' then 'Black'
+      when race='W' then 'White'
+      when race='H' then 'Hispanic'
+      when race='N' then 'Non Hispanic'
+      when race='A' then 'Asian'
+      else 'Missing'
+      end as race,
+      [body_camera],
+      [longitude],
+      [latitude]
+  FROM [dbo].[Police_Shootings_Geo_Location]
+  group by case when race='B' then 'Black'
+      when race='W' then 'White'
+      when race='H' then 'Hispanic'
+      when race='N' then 'Non Hispanic'
+      when race='A' then 'Asian'
+      else 'Missing'
+      end,       [body_camera],
+      [longitude],
+      [latitude]
