@@ -1,4 +1,5 @@
-Download ODBC Driver for SQL Server - Microsoft Learn
+Download latest ODBC Driver for SQL Server - Microsoft Learn (If Needed)
+
 https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver16
 
 Test to make sure ODBC Driver is installed properly (Not really needed but just sanity check)
