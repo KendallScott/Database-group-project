@@ -16,6 +16,7 @@ Azure_Connection <- DBI::dbConnect(odbc::odbc(),
                       PWD = "All_models_are_wrong",
                       Port = 1433)
 
+library(DBI)
 testsql<- dbGetQuery(Azure_Connection,'
   select top 10*
   from "police_shootings"."dbo"."shootings"
