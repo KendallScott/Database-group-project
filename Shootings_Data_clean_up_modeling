@@ -65,6 +65,18 @@ ggplot(threat, aes(x=reorder(armed,-perc),y=perc, fill=perc))+ geom_bar(aes(fill
   ylab("Threat Level")+
   xlab("Armed Type") +scale_fill_viridis(option="viridis", discrete=FALSE, name="Percent at Attack Threat Level", alpha=0.9 )+ theme_classic()+facet_wrap(~group)+coord_flip()
 
+ggplot(pop_shootings, aes(x=as.factor(armed), fill=threat_level))+
+  geom_bar(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..]), position="stack" , width=0.9) +
+  geom_text(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..], label=scales::percent(..count../tapply(..count.., ..x.. ,sum)[..x..]) ), stat="count", position=position_stack(0.9),
+            color = "black")+
+  xlab('Armed Type') +
+  ylab('Threat Level')+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 7))+
+  scale_fill_viridis(option="viridis", discrete=TRUE, name="Threat Level", alpha=0.75 )+
+  theme_classic()
+#comparison between black American's and everyone else
+ggplot(pop_shootings, aes(x=as.factor(race), fill=body_camera)+ geom_bar(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..])), position="stack" , width=0.5) + geom_text(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..], label=scales::percent(..count../tapply(..count.., ..x.. ,sum)[..x..])), stat="count", position=position_stack(0.9), vjust=0.5)+ xlab('Race') + ylab('Percent of armed type')+ scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+ theme(axis.text = element_text(size = 7))+facet_wrap(~)
+
 #logistic regression start- WIP
 
 pop_shootings$new_threat_level<-factor(ifelse(pop_shootings$threat_level=="attack","attack","other"))
@@ -91,19 +103,6 @@ ggplot(pop_shootings,aes(x=race,y=new_threat_level))+geom_point()+geom_smooth(me
 #this graph doesn't work
 boxplot(new_threat_level~race,data=pop_shootings)
 
-#EDA  
-  
-ggplot(pop_shootings, aes(x=as.factor(armed), fill=threat_level))+
-  geom_bar(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..]), position="stack" , width=0.9) +
-  geom_text(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..], label=scales::percent(..count../tapply(..count.., ..x.. ,sum)[..x..]) ), stat="count", position=position_stack(0.9),
-            color = "black")+
-  xlab('Armed Type') +
-  ylab('Threat Level')+
-  scale_x_discrete(labels = function(x) str_wrap(x, width = 7))+
-  scale_fill_viridis(option="viridis", discrete=TRUE, name="Threat Level", alpha=0.75 )+
-  theme_classic()
-#comparison between black American's and everyone else
-ggplot(pop_shootings, aes(x=as.factor(race), fill=body_camera)+ geom_bar(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..])), position="stack" , width=0.5) + geom_text(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..], label=scales::percent(..count../tapply(..count.., ..x.. ,sum)[..x..])), stat="count", position=position_stack(0.9), vjust=0.5)+ xlab('Race') + ylab('Percent of armed type')+ scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+ theme(axis.text = element_text(size = 7))+facet_wrap(~)
 
 #random forest modeling, finalized
 shooting_rf = data.frame(   
