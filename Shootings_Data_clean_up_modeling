@@ -5,7 +5,6 @@ library(gganimate)
 library(gifski)
 library(ggplot2)
 library(maps)
-#Random Forest
 library(randomForest)
 library(varImp)
 
@@ -17,6 +16,7 @@ pop_shootings$race <- str_replace_all(pop_shootings$race, c("A"="Asian",  "H"= "
 pop_shootings$armed <- str_replace_all(pop_shootings$armed, c(".*air.*pistol.*"="gun",  ".*chain.*saw.*"= "chain saw", ".*nail gun*"="household item",  ".*walking stick.*"="household item",  ".*wasp spray*"= "household item", ".*vehicle and machete.*"= "knife/sword", ".*knife.*"= "knife/sword", ".*pipe.*"= "household item", ".*pole.*"= "household item", ".*piece of wood.*"= "household item", ".*screwdriver.*"= "household item",  ".*sword.*"= "knife/sword",  ".*pair of scissors.*"= "household item", ".*pick axe.*"= "ax",  ".*air conditioner.*"= "household item", ".*gun.*"= "gun", "wasp spray"="household item", "Airsoft pistol"="gun", ".*hammer.*"="household item", ".*hand torch.*"="household item", "box cutter"="household item", "chair"="household item", "crowbar"="household item", "flashlight"="household item", "cordless drill"="household item", "contractor's level"="household item", "baton"="household item", "glass shard"="other", "pitchfork"="household item", "pick-axe"="ax", "railroad spikes"="other", "rock"="other", "wrench"="household item", "brick"="other", "shovel"="household item", "sharp object"="other", "meat cleaver"="knife/sword", "machete"="knife/sword", "wrench"="household item", "metal hand tool"="household item", "carjack"="household item", ".*ax.*"="ax", ".*bottle.*"="other", "barstool"="household item", "microphone"="other", "binauculars"="other", "brick"="other", "stapler"="household item", "meat cleaver"="household item", "oar"="household item", "ice pick"="other", "straight edge razor"="other", "lawn mower blade"="other", "hatchet"="other", "garden tool"="household item", "fireworks"="other", "pen"="household item", "baseball bat"="other", "blunt object"="other", "bow and arrow"="other", "chain"="household item", "chain saw"="other", "claimed to be armed"="other", "incendiary.*"="other", "tire iron"="household item", "houehold item"="household item", "metal rake"="household item", "metal stick"="other", "motorcycle"="vehicle", "Taser"="other",  "unknown weapon"="other", "spear"="other",  "pepper spray"="other", "binoculars"="household item", "sharp object"="other",  "stake"="other",  "NULL"="undetermined", "crossbow"="other", "household item saw"="other", "metal object"="other", "Gun"="gun", "other and fireplace poker"="other", "stone"="other", "ax"="knife/sword"
 ))
 
+#EDA
 #% by body camera
 ggplot(pop_shootings, aes(x=as.factor(race), fill=body_camera))+
   geom_bar(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..]), position="stack" , width=0.9) +
@@ -39,6 +39,8 @@ ggplot(pop_shootings, aes(x=as.factor(threat_level), fill=body_camera))+
   scale_x_discrete(labels = function(x) str_wrap(x, width = 7))+
   scale_fill_viridis(option="viridis", discrete=TRUE, name="Body Camera", alpha=0.75 )+
   theme_classic()
+
+#comparisons of % at "Attack" threat level
 
 threat_not_black<-pop_shootings %>%
   filter(race != "Black")%>% 
@@ -63,6 +65,8 @@ ggplot(threat, aes(x=reorder(armed,-perc),y=perc, fill=perc))+ geom_bar(aes(fill
   ylab("Threat Level")+
   xlab("Armed Type") +scale_fill_viridis(option="viridis", discrete=FALSE, name="Percent at Attack Threat Level", alpha=0.9 )+ theme_classic()+facet_wrap(~group)+coord_flip()
 
+#logistic regression start- WIP
+
 pop_shootings$new_threat_level<-factor(ifelse(pop_shootings$threat_level=="attack","attack","other"))
 #View(mydata)
 levels(pop_shootings$new_threat_level)
@@ -82,24 +86,12 @@ newlog.model<-glm(threat_level~armed*race,data=pop_shootings,family="binomial")
 pop_shootings$new_threat_level <- relevel(pop_shootings$new_threat_level, "attack")
 newlog.model<-glm(threat_level~armed+race,data=pop_shootings,family="binomial")
 
+#this graph doesn't work
 ggplot(pop_shootings,aes(x=race,y=new_threat_level))+geom_point()+geom_smooth(method="loess",size=1)
-
+#this graph doesn't work
 boxplot(new_threat_level~race,data=pop_shootings)
 
-gg2<- ggplot(threat_not_black, aes(x=reorder(armed,-perc),y=perc, fill=perc))+ geom_bar(aes(fill=perc),show.legend=T,stat="identity")+
-  ggtitle("Non-Black Population")+
-  ylab("Threat Level")+
-  xlab("Armed Type") +scale_fill_viridis(option="viridis", discrete=FALSE, name="Percent at Attack Threat Level", alpha=0.9 )+ theme_classic()
-
-grid.arrange(gg, gg2, nrow=2)
-  
-  
-  gg<- ggplot(threat[c(14:20),],aes(x=reorder(race,-perc),y=perc, fill=perc))+
-    geom_bar(aes(fill=perc),show.legend=T,stat="identity")+
-    ylab("Threat Level")+
-    xlab("Race") +scale_fill_viridis(option="viridis", discrete=FALSE, name="Percent of Attack Threat", alpha=0.9 )+ theme_classic()+facet_wrap(~group)
-  gg+coord_flip()
-  
+#EDA  
   
 ggplot(pop_shootings, aes(x=as.factor(armed), fill=threat_level))+
   geom_bar(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..]), position="stack" , width=0.9) +
@@ -110,15 +102,10 @@ ggplot(pop_shootings, aes(x=as.factor(armed), fill=threat_level))+
   scale_x_discrete(labels = function(x) str_wrap(x, width = 7))+
   scale_fill_viridis(option="viridis", discrete=TRUE, name="Threat Level", alpha=0.75 )+
   theme_classic()
-
+#comparison between black American's and everyone else
 ggplot(pop_shootings, aes(x=as.factor(race), fill=body_camera)+ geom_bar(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..])), position="stack" , width=0.5) + geom_text(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..], label=scales::percent(..count../tapply(..count.., ..x.. ,sum)[..x..])), stat="count", position=position_stack(0.9), vjust=0.5)+ xlab('Race') + ylab('Percent of armed type')+ scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+ theme(axis.text = element_text(size = 7))+facet_wrap(~)
 
-threat<-pop_shootings %>% 
-  group_by(armed,threat_level, race) %>%
-  summarise(cnt=n()) %>%
-  mutate(perc=round(cnt/sum(cnt),4))%>%
-  arrange(desc(threat_level),desc(perc))
-
+#random forest modeling, finalized
 shooting_rf = data.frame(   
   manner_of_death=as.factor(pop_shootings$manner_of_death),
   armed=as.factor(pop_shootings$armed),
@@ -135,11 +122,14 @@ model <- randomForest(threat_level ~  ., data = shooting_rf, importance=TRUE)
 importance=importance(model)
 varImpPlot(model)
 
+#selection for random forest
 library(Boruta)
 boruta.train <- Boruta(threat_level~., data = shooting_rf, doTrace = 2)
+
 #plot of feature selection for random forest
 plot(boruta.train, xlab = "", xaxt = "n")
 
+#graphing for Boruta
 lz<-lapply(1:ncol(boruta.train$ImpHistory),function(i)
   boruta.train$ImpHistory[is.finite(boruta.train$ImpHistory[,i]),i])
 names(lz) <- colnames(boruta.train$ImpHistory)
@@ -151,24 +141,3 @@ final.boruta <- TentativeRoughFix(boruta.train)
 print(final.boruta)
 plot(final.boruta)
 
-ggplot() +
-  geom_polygon(data = usa, aes(x=longitude, y = latitude, group = group),color = "white", fill="grey", alpha=0.3) +
-  geom_point( data=sh, aes(x=longitude, y=latitude, color=race, size=victims,  alpha=0.5)) +
-  scale_color_viridis(option="viridis", discrete=TRUE, name="Race" ) +
-  theme_void() +
-  scale_size(range = c(1, 10), name=" # of victims")+
-  ggtitle("Number of victims by race")
-
-p <- ggplot() +
-  geom_polygon(data = usa, aes(x=longitude, y = latitude, group = group),color = "white", fill="grey", alpha=0.3) +
-geom_point( data=sh, aes(x=longitude, y=latitude, color=race, size=victims,  alpha=0.5)) +
-  scale_color_viridis_d(option="viridis", name="Race" ) +
-  theme_void() +
-  scale_size(range = c(2, 20), name=" # of beers")+
-  ggtitle("Number of Victims by Race \n {closest_state}")+
-  theme(text = element_text(size=20))+
-  transition_states(Race) +
-  enter_fade() + 
-  enter_grow() +
-  ease_aes('sine-in-out')
-animate(p, width = 900, height = 572, duration = 14)
