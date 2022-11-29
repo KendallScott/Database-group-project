@@ -12,34 +12,6 @@ library(varImp)
 setwd("~/Desktop")
 pop_shootings<-read.csv("shootings.csv",stringsAsFactors = T)
 
-shootings_location= data.frame(    
-  id=shootings$id,
-  City=shootings$city,
-  State=shootings$state,
-  BodyCamera=shootings$body_camera,
-  format(as.Date(shootings$date, format="%d/%m/%Y"),"%Y")
-  )
-
-#summary table for bubble graph/map
-sh<-shootings_location %>% group_by(race, latitude, longitude) %>% summarize( victims = n()) %>% arrange(desc(victims))
-sh
-sh <- sh %>% filter_at(vars(latitude, longitude), all_vars(!is.na(.)))
-
-us_counties <- map_data("county")
-cnty<-cnty%>% select(City, State, region, County)
-cnty<- cnty %>% distinct(City, State, .keep_all = TRUE)
-us_counties<-us_counties %>% distinct(region, subregion, .keep_all = TRUE)
-
-#load population data 
-setwd("~/Desktop")
-Pop_by_race<-read.csv("Population_by_Race.csv",stringsAsFactors = F)
-
-
-install.packages("ggrepel")
-library(ggrepel)
-usa <- map_data("state")
-
-
 pop_shootings$race <- str_replace_all(pop_shootings$race, c("A"="Asian",  "H"= "Hispanic", "B"="Black",  "W"="White", "O"="Other", "N"="Non Hispanic")) 
                                                               
 pop_shootings$armed <- str_replace_all(pop_shootings$armed, c(".*air.*pistol.*"="gun",  ".*chain.*saw.*"= "chain saw", ".*nail gun*"="household item",  ".*walking stick.*"="household item",  ".*wasp spray*"= "household item", ".*vehicle and machete.*"= "knife/sword", ".*knife.*"= "knife/sword", ".*pipe.*"= "household item", ".*pole.*"= "household item", ".*piece of wood.*"= "household item", ".*screwdriver.*"= "household item",  ".*sword.*"= "knife/sword",  ".*pair of scissors.*"= "household item", ".*pick axe.*"= "ax",  ".*air conditioner.*"= "household item", ".*gun.*"= "gun", "wasp spray"="household item", "Airsoft pistol"="gun", ".*hammer.*"="household item", ".*hand torch.*"="household item", "box cutter"="household item", "chair"="household item", "crowbar"="household item", "flashlight"="household item", "cordless drill"="household item", "contractor's level"="household item", "baton"="household item", "glass shard"="other", "pitchfork"="household item", "pick-axe"="ax", "railroad spikes"="other", "rock"="other", "wrench"="household item", "brick"="other", "shovel"="household item", "sharp object"="other", "meat cleaver"="knife/sword", "machete"="knife/sword", "wrench"="household item", "metal hand tool"="household item", "carjack"="household item", ".*ax.*"="ax", ".*bottle.*"="other", "barstool"="household item", "microphone"="other", "binauculars"="other", "brick"="other", "stapler"="household item", "meat cleaver"="household item", "oar"="household item", "ice pick"="other", "straight edge razor"="other", "lawn mower blade"="other", "hatchet"="other", "garden tool"="household item", "fireworks"="other", "pen"="household item", "baseball bat"="other", "blunt object"="other", "bow and arrow"="other", "chain"="household item", "chain saw"="other", "claimed to be armed"="other", "incendiary.*"="other", "tire iron"="household item", "houehold item"="household item", "metal rake"="household item", "metal stick"="other", "motorcycle"="vehicle", "Taser"="other",  "unknown weapon"="other", "spear"="other",  "pepper spray"="other", "binoculars"="household item", "sharp object"="other",  "stake"="other",  "NULL"="undetermined", "crossbow"="other", "household item saw"="other", "metal object"="other", "Gun"="gun", "other and fireplace poker"="other", "stone"="other", "ax"="knife/sword"
