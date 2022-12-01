@@ -1,0 +1,200 @@
+#Libraries
+```{r}
+library(tidyverse)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(scales)
+```
+
+
+#Source Data
+```{r}
+setwd("C:/Users/rosjo/Documents/Masters Program/2. Applied Statistics/Project 2/")
+shootings<-read.csv("Shootings 11.21.22.csv",header=T,stringsAsFactors = TRUE)
+```
+
+
+#Clean Up Data
+
+```{r}
+summary(shootings)
+str(shootings)
+
+shootings$date = as.Date(shootings$date,"%m/%d/%Y")
+shootings$signs_of_mental_illness = as.factor(shootings$signs_of_mental_illness)
+shootings$body_camera = as.factor(shootings$body_camera)
+shootings$is_geocoding_exact = as.factor(shootings$is_geocoding_exact)
+shootings$threat2<-as.factor(ifelse(shootings$threat_level=="attack","attack","no attack"))
+shootings$threat2.num<-ifelse(shootings$threat2=="attack",1,0)
+shootings = shootings%>% 
+  mutate(race2 = case_when(
+    race == "O"~"Other",
+    race == "B"~"Black",
+    race == "W"~"White",
+    race == "H"~"Hispanic",
+    race == "A"~"Asian",
+    race == "N"~"Native American",
+    TRUE ~ "Not Identified"
+  ))
+shootings$race2 = as.factor(shootings$race2)
+shootings = shootings %>%
+  mutate(year = year(date), 
+                month = month(date), 
+                day = day(date))
+shootings$year = as.integer(shootings$year)
+shootings$month = as.integer(shootings$month)
+shootings$day = as.integer(shootings$day)
+
+str(shootings)
+#summary(shootings)
+#view(shootings)
+
+duplicates <- shootings %>% 
+  group_by(name, city, state) %>% 
+  mutate(dupe = n()>1)%>%
+  arrange(desc(dupe), desc(name), city, state, date)
+
+#view(duplicates)
+
+shootings2<-subset(shootings, !(id %in% c(8063, 6853, 7408, 8539, 8609, 8613, 7347 )))
+
+shootings2$armed <- str_replace_all(shootings2$armed, c(".*air.*pistol.*"="gun",  
+     ".*chain.*saw.*"= "chain saw", ".*nail gun*"="household item", ".*walking stick.*"="household item",
+     ".*wasp spray*"= "household item", ".*vehicle and machete.*"= "knife/sword",".*knife.*"= "knife/sword",
+     ".*pipe.*"= "household item",".*pole.*"= "household item",".*piece of wood.*"= "household item",
+     ".*screwdriver.*"= "household item",".*sword.*"= "knife/sword",".*pair of scissors.*"= "household item",
+     ".*pick axe.*"= "ax",".*air conditioner.*"= "household item",".*gun.*"= "gun","wasp spray"="household item",
+     "Airsoft pistol"="gun",".*hammer.*"="household item",".*hand torch.*"="household item",
+     "box cutter"="household item","chair"="household item","crowbar"="household item","flashlight"="household item",
+     "cordless drill"="household item","contractor's level"="household item","baton"="household item",
+     "glass shard"="other","pitchfork"="household item","pick-axe"="ax","railroad spikes"="other",
+     "rock"="other","wrench"="household item","brick"="other","shovel"="household item","sharp object"="other",
+     "meat cleaver"="knife/sword","machete"="knife/sword","wrench"="household item",
+     "metal hand tool"="household item","carjack"="household item",".*ax.*"="ax",".*bottle.*"="other",
+     "barstool"="household item","microphone"="other","binauculars"="other","brick"="other",
+     "stapler"="household item","meat cleaver"="household item","oar"="household item","ice pick"="other",
+     "straight edge razor"="other", "lawn mower blade"="other", "hatchet"="other",
+     "garden tool"="household item", "fireworks"="other", "pen"="household item", "baseball bat"="other",
+     "blunt object"="other", "bow and arrow"="other", "chain"="household item", "chain saw"="other",
+     "claimed to be armed"="other", "incendiary.*"="other", "tire iron"="household item",
+     "houehold item"="household item", "metal rake"="household item", "metal stick"="other",
+     "motorcycle"="vehicle", "Taser"="other",  "unknown weapon"="other", "spear"="other",
+     "pepper spray"="other", "binoculars"="household item", "sharp object"="other","stake"="other",
+     "NULL"="undetermined", "crossbow"="other", "household item saw"="other", "metal object"="other",
+     "Gun"="gun", "other and fireplace poker"="other", "stone"="other", "ax"="knife/sword"
+))
+shootings2$armed = as.factor(shootings2$armed)
+
+shootings2 = shootings2%>% 
+  mutate(weapon = case_when(
+    armed == "vehicle"~"weapon",
+    armed == "gun"~"weapon",
+    armed == "knife/sword"~"weapon",
+    armed == "other"~"weapon",
+    TRUE ~ "not weapon"
+  ))
+shootings2$weapon = as.factor(shootings2$weapon)
+
+
+#str(shootings2)
+#view(shootings2)
+summary(shootings2)
+
+```
+
+
+#EDA
+
+```{r}
+
+
+#Distribution of threat levels
+g<-shootings2 %>% 
+  group_by(threat2) %>%
+    summarise(cnt=n()) %>%
+    mutate(perc=round(cnt/sum(cnt),4))
+g
+
+ggplot(g,aes(x=threat2,y=perc,colour=threat2))+
+  geom_bar(aes(fill=threat2),show.legend=F,stat="identity")+
+  ggtitle("% of Victims Considered Attack Threat")+
+  ylab("Proportion of Threat")+
+  xlab("Threat Level")
+
+#Distribution of threat levels by race
+g2<-shootings2 %>% 
+  group_by(race2,threat2) %>%
+  summarise(cnt=n()) %>%
+  mutate(perc=round(cnt/sum(cnt),4))%>%
+  arrange(desc(perc))
+g2
+
+ggplot(g2[c(1,2,3,4,5,6,7),],aes(x=reorder(race2,-perc),y=perc))+
+  geom_bar(aes(fill=threat2),show.legend=T,stat="identity")+
+  ggtitle("% of Victims Considered Attack Threat by Race")+
+  ylab("Proportion of Threat")+
+  xlab("Race")+
+  geom_text(aes(label=percent(perc,accuracy=0.1)),  vjust=2, color = "white")+
+  scale_fill_manual(values="brown4")
+
+
+
+#Distribution of threat levels by race and by weapon / no weapon
+g3<-shootings2 %>% 
+  group_by(race2,weapon, threat2) %>%
+  summarise(cnt=n()) %>%
+  mutate(perc=round(cnt/sum(cnt),4))%>%
+  arrange(weapon, threat2,race2,  desc(perc))
+g3
+#view(g3)
+
+ggplot(g3[c(1:7),],aes(x=reorder(race2,-perc),y=perc,colour=threat2))+
+  geom_bar(aes(fill=threat2),show.legend=T,stat="identity")+
+  ggtitle("% of Victims Without Weapon Considered Attack Threat by Race")+
+  ylab("Proportion of Threat")+
+  xlab("Race")+
+  geom_text(aes(label=percent(perc,accuracy=0.1)),  vjust=2, color = "white")+
+  scale_fill_manual(values="red3")
+
+ggplot(g3[c(22:28),],aes(x=reorder(race2,-perc),y=perc,fill=threat2))+
+  geom_bar(show.legend=T,stat="identity")+
+  ggtitle("% of Victims With Weapon Not Considered Attack Threat by Race")+
+  ylab("Proportion of Threat")+
+  xlab("Race")+
+  geom_text(aes(label=percent(perc,accuracy=0.1)),  vjust=2, color = "white")+
+  scale_fill_manual(values="midnightblue")
+
+
+
+
+#Loess plot for Age
+
+ggplot(shootings2,aes(x=age,y=threat2.num))+geom_point()+
+  geom_smooth(method="loess",size=1)+
+  ylim(-.2,1.2)
+
+
+#Loess plot of Age by race
+ggplot(shootings2,aes(x=age,y=threat2.num,colour=race2))+geom_point()+
+  geom_smooth(method="loess",size=1,span=1.5)+
+  ylim(-.2,1.2)+
+  facet_wrap(~race2)
+
+
+
+
+```
+
+#Split into Train and Test set (70 / 30)
+
+```{r}
+
+set.seed(1234)
+index<-sample(1:nrow(shootings2),round(0.70 * nrow(shootings2)),replace=F)
+train<-shootings2[index,]
+test<-shootings2[-index,]
+```
+
+
+
