@@ -267,7 +267,7 @@ testing = shootingsDF[-trainIndex,]
 ################################################################################
 
 #setting up for 5-fold CV
-fitControl<-trainControl(method="repeatedcv",number=5,repeats=1,classProbs=TRUE, summaryFunction=mnLogLoss)
+fitControl<-trainControl(method="cv",number=5,classProbs=TRUE, summaryFunction=mnLogLoss)
 
 names(training)
 
