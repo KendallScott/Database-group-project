@@ -170,7 +170,7 @@ fatalShootings$flee[is.na(fatalShootings$flee)] = 'Other'
 
 fatalShootings$age[is.na(fatalShootings$age)] = mean(fatalShootings$age,na.rm=TRUE)
 
-genderLevels = levels(droplevels(fatalShootings$gender))
+genderLevels = levels(droplevels(as.factor(fatalShootings$gender)))
 genderLevels[length(genderLevels)+1] = 'Unknown'
 fatalShootings$gender = factor(fatalShootings$gender, levels=genderLevels)
 
@@ -184,6 +184,7 @@ summary(fatalShootings)
 byState = read.csv('/Users/taddbackus/School/fall22/appliedStat/Project2/OverallStateYear.csv',
                    header=TRUE,
                    stringsAsFactors=TRUE)
+
 byState = rename(byState,Native_American_total=Non_Hispanic_total)
 byState = rename(byState,Native_American_population=American_Indian_or_Alaskan_Native_population)
 
@@ -217,7 +218,6 @@ summary(stateDF)
 # Police
 ################################################################################
 police = read.csv('/Users/taddbackus/School/fall22/appliedStat/Project2/copState.csv')
-
 lookup = data.frame(abb=state.abb,state=state.name)
 lookup = rename(lookup,State=state)
 
@@ -256,7 +256,7 @@ set.seed(1234)
 trainIndex = createDataPartition(shootingsDF$threat_level,p=.6,list=F)
 
 training = shootingsDF[trainIndex,]
-testing = shootingsDF[-trianIndex,]
+testing = shootingsDF[-trainIndex,]
 
 ################################################################################
 # Kendall
@@ -265,6 +265,7 @@ testing = shootingsDF[-trianIndex,]
 ################################################################################
 # Varun
 ################################################################################
+
 
 ################################################################################
 # Roslyn
