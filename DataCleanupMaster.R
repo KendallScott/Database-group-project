@@ -266,7 +266,32 @@ testing = shootingsDF[-trainIndex,]
 # Varun
 ################################################################################
 
-Testing
+#setting up for 5-fold CV
+fitControl<-trainControl(method="repeatedcv",number=5,repeats=1,classProbs=TRUE, summaryFunction=mnLogLoss)
+
+names(training)
+
+class(training$year)
+
+#fitting an LDA model
+lda.fit<-train(threat_level~armed+race+signs_of_mental_illness+flee+body_camera,
+               data=training,
+               method="lda",
+               trControl=fitControl,
+               metric="logLoss")
+
+#Metrics for the LDA model
+confusionMatrix(predict(lda.fit,testing),testing$threat_level)
+
+#fitting a QDA model
+qda.fit<-train(threat_level~armed+race+signs_of_mental_illness+flee+body_camera,
+               data=training,
+               method="qda",
+               trControl=fitControl,
+               metric="logLoss")
+
+#Metrics for the QDA model
+confusionMatrix(predict(qda.fit,testing),testing$threat_level)
 
 ################################################################################
 # Roslyn
