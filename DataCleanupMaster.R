@@ -248,6 +248,16 @@ shootingsDF$racePerCapita = ifelse(
                               ifelse(shootingsDF$race=='Not Identified',shootingsDF$AvgTotalVictimsPerCapita,0))))))
 summary(shootingsDF$racePerCapita)
 
+
+################################################################################
+# Test Train Split
+################################################################################
+set.seed(1234)
+trainIndex = createDataPartition(shootingsDF$threat_level,p=.6,list=F)
+
+training = shootingsDF[shootingsDF,]
+testing = shootingsDF[-shootingsDF,]
+
 ################################################################################
 # Kendall
 ################################################################################
