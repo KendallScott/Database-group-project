@@ -293,6 +293,9 @@ qda.fit<-train(threat_level~armed+race+signs_of_mental_illness+flee+body_camera,
 #Metrics for the QDA model
 confusionMatrix(predict(qda.fit,testing),testing$threat_level)
 
+#logLoss for qda and lda
+qda.fit$results[2]
+lda.fit$results[2]
 ################################################################################
 # Roslyn
 ################################################################################
