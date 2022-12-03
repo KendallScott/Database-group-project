@@ -6,7 +6,9 @@ library(tidyr)
 library(dplyr)
 library(gridExtra)
 library(reshape2)
-
+library(ResourceSelection) 
+library(caret)
+library(sjPlot)
 ################################################################################
 # Fatal Shootings
 ################################################################################
@@ -247,15 +249,53 @@ tlDF$armed = ifelse(tlDF$armed=='knife','blade',tlDF$armed)
 ################################################################################
 # Part 1 Model
 ################################################################################
+set.seed(1234)
+trainIndex = createDataPartition(finalDF$threat_level,p=.6,list=F)
+
+training = finalDF[trainIndex,]
+testing = finalDF[-trainIndex,]
+
+fitControl = trainControl(method='repeatedcv',number=10,repeats=1,classProbs=TRUE)
+tlLogModel = train(threat_level~race+armed+body_camera,
+                   data=training,
+                   method='glmnet',
+                   trControl=fitControl,
+                   metrix='AUROC')
+summary(tlLogModel$finalModel)
+coef(tlLogModel$finalModel,tlLogModel$final$model$lambdaOpt)
+bcLogModel = train(diagnosis~.,
+                   data=training,
+                   method='glmnet',
+                   trControl=fitControl,
+                   metric='AUROC')
+summary(bcLogModel$finalModel)
+coef(bcLogModel$finalModel,bcLogModel$finalModel$lambdaOpt)
+
+
+################################################################################
+# Simpler way to do it
+tlModel = glm(threat_level~race+armed,
+              data=training,
+              family='binomial')
+tlPredict = predict(tlModel,newdata=test)
+summary(tlModel)
+coef(summary(tlModel))
+plot_model(tlModel,type='pred',terms=c('threat_level','armed'))
+
+
+hoslem.test(mymodel$y,fitted(mymodel))
+
+
+
 tlModel = glm(threat_level~age+
+                armed+
                 gender+
                 race+
-                State+
                 flee+
                 body_camera+
                 AvgTotalVictimsPerCapita+
                 LawEnforcementPerCapita,
-              data=tlDF,
+              data=training,
               family='binomial')
 summary(tlModel)
 
