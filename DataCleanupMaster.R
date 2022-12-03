@@ -255,8 +255,8 @@ summary(shootingsDF$racePerCapita)
 set.seed(1234)
 trainIndex = createDataPartition(shootingsDF$threat_level,p=.6,list=F)
 
-training = shootingsDF[shootingsDF,]
-testing = shootingsDF[-shootingsDF,]
+training = shootingsDF[trainIndex,]
+testing = shootingsDF[-trianIndex,]
 
 ################################################################################
 # Kendall
