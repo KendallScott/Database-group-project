@@ -10,7 +10,7 @@ library(ResourceSelection)
 library(caret)
 library(sjPlot)
 library(lubridate)
-
+library(pROC)
 
 ################################################################################
 # Fatal Shootings
@@ -296,6 +296,26 @@ confusionMatrix(predict(qda.fit,testing),testing$threat_level)
 #logLoss for qda and lda
 qda.fit$results[2]
 lda.fit$results[2]
+
+#ROC curve for QDA and LDA
+lda.pred=predict(lda.fit,testing,type="prob")
+qda.pred=predict(qda.fit,testing,type="prob")
+
+head(lda.pred)
+
+lda.roc=roc(response=testing$threat_level, predictor=lda.pred$attack, levels=c("attack","other"))
+qda.roc=roc(response=testing$threat_level, predictor=qda.pred$attack, levels=c("attack","other"))
+
+plot(lda.roc)
+plot(qda.roc,print.thres="best",col="red",add=T,legend=T)
+legend("bottomright",
+       legend=c("LDA", "QDA"),
+       col=c("black", "red"),
+       lwd=4, cex =1, xpd = TRUE, horiz = FALSE)
+
+#AUCs
+auc(lda.roc)
+auc(qda.roc)
 ################################################################################
 # Roslyn
 ################################################################################
