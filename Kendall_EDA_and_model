@@ -1,0 +1,398 @@
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(gganimate)
+library(gifski)
+library(ggplot2)
+library(maps)
+#Random Forest
+library(randomForest)
+library(varImp)
+
+setwd("~/Desktop")
+pop_shootings<-read.csv("shootings.csv",stringsAsFactors = T)
+
+pop_shootings$date = as.Date(pop_shootings$date)
+pop_shootings = pop_shootings %>%
+  mutate(year=year(date))
+pop_shootings$year = as.integer(pop_shootings$year)
+
+shootings_location= data.frame(    
+  id=pop_shootings$name,
+  race=pop_shootings$race,
+  City=pop_shootings$city,
+  State=pop_shootings$State_full,
+  County=pop_shootings$County_full  )
+
+#summary table for bubble graph/map
+sh<-shootings_location %>% group_by(race, County, State) %>% summarize( victims = n()) %>% arrange(desc(victims))
+sh
+sh <- sh %>% filter_at(vars(County, State, race), all_vars(!is.na(.)))
+
+us_counties <- map_data("county")
+
+#wrangle data
+#brewery$State <- trimws(brewery$State, which = c("left"))
+
+cnty <- cnty %>% select("City", "State","County","region")#select columns
+cnty <- cnty[!duplicated(cnty),]
+#left join brew and cnty
+sh <- merge(sh, select(cnty, c("City", "State", "County","region")), by=c("City","State"))
+#1 table wtih state count, map with state count and map with county count
+#state and county tables
+us_states <- map_data("state")
+us_counties <- map_data("county")
+
+sh <- sh %>% mutate(subregion=tolower(County)) 
+sh <- sh %>% filter_at(vars(subregion), all_vars(!is.na(.)))
+
+
+cnty <- read.csv("./cty-cnty.csv")
+cnty<-cnty%>% select(City, State, region, County)
+cnty<- cnty %>% distinct(City, State, .keep_all = TRUE)
+us_counties<-us_counties %>% distinct(region, subregion, .keep_all = TRUE)
+us_county<-us_counties %>% inner_join(sh_county,by="subregion")
+
+#county brewery count
+sh_county <- sh %>% mutate(subregion=tolower(County)) %>% group_by(subregion) %>% sum(victims)
+usa <- map_data("state")
+ggplot() +
+  geom_polygon(data = usa, aes(x=long, y = lat, group = group),color = "white", fill="grey", alpha=0.3) +
+  geom_point( data=shootings, aes(x=long, y=lat, size=n,  alpha=0.5)) +
+  scale_color_viridis(option="viridis", discrete=TRUE, name="Beer Style" ) +
+  theme_void() +
+  scale_size(range = c(1, 10), name=" # of beers")+
+  ggtitle("Number of Beers by Style")
+
+#county gradient map
+us_county %>%
+  ggplot()+
+ # geom_polygon(aes(x=long,y=lat,group=group,fill=n.x),color = "gray90",size=.1)+
+  scale_fill_viridis_c()+
+  theme(axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.background = element_blank(),
+        axis.title = element_blank())+
+  labs(fill="Brewery\nCount")+
+  ggtitle("Breweries by County\nContinental US")+
+  geom_polygon(data = us_counties,aes(x=long,y=lat,group=group))
+
+library(gganimate)
+library(gifski)
+p <- ggplot() +
+  geom_polygon(data = usa, aes(x=long, y = lat, group = group),color = "white", fill="grey", alpha=0.3) +
+  geom_point( data=us_county, aes(x=long, y=lat, color=n.x, size=n.x,  alpha=0.5)) +
+  scale_color_viridis_d(option="viridis", name="Beer Style" ) +
+  theme_void() +
+  scale_size(range = c(2, 20), name=" # of beers")+
+  ggtitle("Number of Beers by Style\n {closest_state}")+
+  theme(text = element_text(size=20))+
+  transition_states(BeerStyle) +
+  enter_fade() + 
+  enter_grow() +
+  ease_aes('sine-in-out')
+animate(p, width = 900, height = 572, duration = 14)
+
+#load population data 
+setwd("~/Desktop")
+Pop_by_race<-read.csv("Population_by_Race.csv",stringsAsFactors = F)
+
+
+install.packages("ggrepel")
+library(ggrepel)
+usa <- map_data("state")
+
+
+pop_shootings$race <- str_replace_all(pop_shootings$race, c("A"="Asian",  "H"= "Hispanic", "B"="Black",  "W"="White", "O"="Other", "N"="Native American")) 
+                                                              
+pop_shootings$armed_type <- str_replace_all(pop_shootings$armed, c(".*air.*pistol.*"="gun",  ".*chain.*saw.*"= "chain saw", ".*nail gun*"="household item",  ".*walking stick.*"="household item",  ".*wasp spray*"= "household item", ".*vehicle and machete.*"= "knife/sword", ".*knife.*"= "knife/sword", ".*pipe.*"= "household item", ".*pole.*"= "household item", ".*piece of wood.*"= "household item", ".*screwdriver.*"= "household item",  ".*sword.*"= "knife/sword",  ".*pair of scissors.*"= "household item", ".*pick axe.*"= "ax",  ".*air conditioner.*"= "household item", ".*gun.*"= "gun", "wasp spray"="household item", "Airsoft pistol"="gun", ".*hammer.*"="household item", ".*hand torch.*"="household item", "box cutter"="household item", "chair"="household item", "crowbar"="household item", "flashlight"="household item", "cordless drill"="household item", "contractor's level"="household item", "baton"="household item", "glass shard"="other", "pitchfork"="household item", "pick-axe"="ax", "railroad spikes"="other", "rock"="other", "wrench"="household item", "brick"="other", "shovel"="household item", "sharp object"="other", "meat cleaver"="knife/sword", "machete"="knife/sword", "wrench"="household item", "metal hand tool"="household item", "carjack"="household item", ".*ax.*"="ax", ".*bottle.*"="other", "barstool"="household item", "microphone"="other", "binauculars"="other", "brick"="other", "stapler"="household item", "meat cleaver"="household item", "oar"="household item", "ice pick"="other", "straight edge razor"="other", "lawn mower blade"="other", "hatchet"="other", "garden tool"="household item", "fireworks"="other", "pen"="household item", "baseball bat"="other", "blunt object"="other", "bow and arrow"="other", "chain"="household item", "chain saw"="other", "claimed to be armed"="other", "incendiary.*"="other", "tire iron"="household item", "houehold item"="household item", "metal rake"="household item", "metal stick"="other", "motorcycle"="vehicle", "Taser"="other",  "unknown weapon"="other", "spear"="other",  "pepper spray"="other", "binoculars"="household item", "sharp object"="other",  "stake"="other",  "NULL"="undetermined", "crossbow"="other", "household item saw"="other", "metal object"="other", "Gun"="gun", "other and fireplace poker"="other", "stone"="other", "ax"="knife/sword"
+))
+
+#% by body camera
+ggplot(pop_shootings, aes(x=as.factor(race), fill=as.factor(body_camera)))+
+  geom_bar(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..]), position="stack" , width=0.9) +
+  geom_text(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..], label=scales::percent(..count../tapply(..count.., ..x.. ,sum)[..x..]) ),
+            stat="count", position=position_stack(0.9),
+            color = "black")+
+  xlab('Race') +
+  ylab('Body Camera')+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 7))+
+  scale_fill_viridis(option="viridis", discrete=TRUE, name="Body Camera", alpha=0.75 )+
+  theme_classic()
+
+ggplot(pop_shootings, aes(x=as.factor(threat_level), fill=body_camera))+
+  geom_bar(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..]), position="stack" , width=0.9) +
+  geom_text(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..], label=scales::percent(..count../tapply(..count.., ..x.. ,sum)[..x..]) ),
+            stat="count", position=position_stack(0.9), color = "black")+
+  xlab('Threat Level') +
+  ylab('Body Camera')+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 7))+
+  scale_fill_viridis(option="viridis", discrete=TRUE, name="Body Camera", alpha=0.75 )+
+  theme_classic()
+g <- ggplot(pop_shootings, aes(year))
+g + geom_bar(aes(fill=year))+
+  scale_fill_viridis(option="viridis", discrete=FALSE, name="Body Camera", alpha=0.75 )
+ggplot(pop_shootings,aes(x=year))+
+  geom_bar(stat='count')+
+  ylab('# of Victims')+
+  theme_classic()+
+  scale_fill_viridis(option="viridis", discrete=FALSE, name="Body Camera", alpha=0.75 )
+
+threat_not_black<-pop_shootings %>%
+  filter(race != "Black")%>% 
+  group_by(armed,threat_level) %>%
+  summarise(cnt=n()) %>%
+  mutate(perc=round(cnt/sum(cnt),4))%>%
+  arrange(desc(threat_level),desc(perc))
+threat<-pop_shootings %>%
+  filter(race == "Black")%>% 
+  group_by(armed,threat_level) %>%
+  summarise(cnt=n()) %>%
+  mutate(perc=round(cnt/sum(cnt),4))%>%
+  arrange(desc(threat_level),desc(perc))
+threat_not_black$group<-"Not Black"
+threat$group<-"Black"
+
+threat<-threat%>%filter(threat_level == "attack")
+threat_not_black<-threat_not_black%>%filter(threat_level == "attack")
+threat<-rbind(threat_not_black, threat)
+
+ggplot(threat, aes(x=reorder(armed,-perc),y=perc, fill=perc))+ geom_bar(aes(fill=perc),show.legend=T,stat="identity")+
+  ylab("Threat Level")+
+  xlab("Armed Type") +scale_fill_viridis(option="viridis", discrete=FALSE, name="Percent at Attack Threat Level", alpha=0.9 )+ theme_classic()+facet_wrap(~group)+coord_flip()
+
+shootings$year<-format(as.Date(shootings$date, format="%d/%m/%Y"),"%Y")
+ggplot(shootings, aes(x=year,y=stat_count()), fill=stat_count())+ geom_bar(aes (),show.legend=T,stat="identity")+
+  ylab("Threat Level")+
+  xlab("Armed Type") #+scale_fill_viridis(option="viridis", discrete=FALSE, name="Percent at Attack Threat Level", alpha=0.9 )+ theme_classic()
+
+pop_shootings$new_threat_level<-factor(ifelse(pop_shootings$threat_level=="attack","attack","other"))
+#View(mydata)
+levels(pop_shootings$new_threat_level)
+pop_shootings <- pop_shootings[order(levels(pop_shootings$new_threat_level)),]
+
+newlog.model<-glm(new_threat_level~as.factor(race)*armed,data=pop_shootings,family="binomial")
+coef(summary(newlog.model))
+
+newlog.model<-glm(new_threat_level~as.factor(race)+armed+flee,data=pop_shootings,family="binomial")
+summary(newlog.model)
+
+coef(summary(newlog.model))
+exp(confint(newlog.model))
+
+newlog.model<-glm(threat_level~armed*race,data=pop_shootings,family="binomial")
+
+pop_shootings$new_threat_level <- relevel(pop_shootings$new_threat_level, "attack")
+newlog.model<-glm(threat_level~armed+race,data=pop_shootings,family="binomial")
+
+ggplot(pop_shootings,aes(x=race,y=new_threat_level))+geom_point()+geom_smooth(method="loess",size=1)
+
+boxplot(new_threat_level~race,data=pop_shootings)
+
+gg2<- ggplot(threat_not_black, aes(x=reorder(armed,-perc),y=perc, fill=perc))+ geom_bar(aes(fill=perc),show.legend=T,stat="identity")+
+  ggtitle("Non-Black Population")+
+  ylab("Threat Level")+
+  xlab("Armed Type") +scale_fill_viridis(option="viridis", discrete=FALSE, name="Percent at Attack Threat Level", alpha=0.9 )+ theme_classic()
+
+grid.arrange(gg, gg2, nrow=2)
+  
+  
+  gg<- ggplot(threat[c(14:20),],aes(x=reorder(race,-perc),y=perc, fill=perc))+
+    geom_bar(aes(fill=perc),show.legend=T,stat="identity")+
+    ylab("Threat Level")+
+    xlab("Race") +scale_fill_viridis(option="viridis", discrete=FALSE, name="Percent of Attack Threat", alpha=0.9 )+ theme_classic()+facet_wrap(~group)
+  gg+coord_flip()
+  
+  
+ggplot(pop_shootings, aes(x=as.factor(armed), fill=threat_level))+
+  geom_bar(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..]), position="stack" , width=0.9) +
+  geom_text(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..], label=scales::percent(..count../tapply(..count.., ..x.. ,sum)[..x..]) ), stat="count", position=position_stack(0.9),
+            color = "black")+
+  xlab('Armed Type') +
+  ylab('Threat Level')+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 7))+
+  scale_fill_viridis(option="viridis", discrete=TRUE, name="Threat Level", alpha=0.75 )+
+  theme_classic()
+
+threat<-pop_shootings %>% 
+  group_by(armed,threat_level, race) %>%
+  summarise(cnt=n()) %>%
+  mutate(perc=round(cnt/sum(cnt),4))%>%
+  arrange(desc(threat_level),desc(perc))
+
+pop_shootings$weapon <- str_replace_all(pop_shootings$armed, 
+                                        c(".*air.*pistol.*"="toy weapon",  
+                                          ".*chain.*saw.*"= "chain saw", 
+                                          ".*nail gun*"="household item",  
+                                          ".*walking stick.*"="household item",  
+                                          ".*wasp spray*"= "household item", 
+                                          ".*vehicle and machete.*"= "knife/sword", 
+                                          ".*knife.*"= "knife/sword", 
+                                          ".*pipe.*"= "household item", 
+                                          ".*pole.*"= "household item", 
+                                          ".*piece of wood.*"= "household item", 
+                                          ".*screwdriver.*"= "household item",  
+                                          ".*sword.*"= "knife/sword",  
+                                          ".*pair of scissors.*"= "household item", 
+                                          ".*pick axe.*"= "misc weapon",  
+                                          ".*air conditioner.*"= "household item", 
+                                          ".*gun.*"= "gun", 
+                                          "wasp spray"="household item", 
+                                          "Airsoft pistol"="toy weapon", 
+                                          ".*hammer.*"="household item", 
+                                          ".*hand torch.*"="household item", 
+                                          "box cutter"="knife/sword", 
+                                          "chair"="household item", 
+                                          "crowbar"="household item", 
+                                          "flashlight"="household item", 
+                                          "cordless drill"="household item", 
+                                          "contractor's level"="household item", 
+                                          "baton"="misc weapon", 
+                                          "glass shard"="other", 
+                                          "pitchfork"="misc weapon", 
+                                          "pick-axe"="misc weapon", 
+                                          "railroad spikes"="other", 
+                                          "rock"="other", 
+                                          "wrench"="household item", 
+                                          "brick"="other", 
+                                          "shovel"="household item", 
+                                          "sharp object"="other", 
+                                          "meat cleaver"="knife/sword", 
+                                          "machete"="knife/sword", 
+                                          "wrench"="household item", 
+                                          "metal hand tool"="household item", 
+                                          "carjack"="household item", 
+                                          ".*ax.*"="misc weapon", 
+                                          ".*bottle.*"="other", 
+                                          "barstool"="household item", 
+                                          "microphone"="other", 
+                                          "binauculars"="other", 
+                                          "brick"="other", 
+                                          "stapler"="household item", 
+                                          "meat cleaver"="knife/sword", 
+                                          "oar"="household item", 
+                                          "ice pick"="other", 
+                                          "straight edge razor"="knife/sword", 
+                                          "lawn mower blade"="knife/sword", 
+                                          "hatchet"="misc weapon", 
+                                          "garden tool"="household item", 
+                                          "fireworks"="other", 
+                                          "pen"="household item", 
+                                          "baseball bat"="misc weapon", 
+                                          "blunt object"="misc weapon", 
+                                          "bow and arrow"="misc weapon", 
+                                          "chain"="household item", 
+                                          "chain saw"="misc weapon", 
+                                          "claimed to be armed"="other", 
+                                          "incendiary.*"="other", 
+                                          "tire iron"="household item", 
+                                          "houehold item"="household item", 
+                                          "metal rake"="household item", 
+                                          "metal stick"="other", 
+                                          "motorcycle"="vehicle", 
+                                          "Taser"="misc weapon",
+                                          "unknown weapon"="misc weapon", 
+                                          "spear"="misc weapon",  
+                                          "pepper spray"="misc weapon", 
+                                          "binoculars"="household item", 
+                                          "sharp object"="other",  
+                                          "stake"="other",  
+                                          "NULL"="undetermined", 
+                                          "crossbow"="misc weapon", 
+                                          "household item saw"="other", 
+                                          "metal object"="other", 
+                                          "Gun"="gun", 
+                                          "other and fireplace poker"="other", 
+                                          "stone"="other", 
+                                          "ax"="misc weapon",
+                                          "misc weapon and fireplace poker"="misc weapon"
+                                        ))
+
+shooting_rf = data.frame(   
+  armed=as.factor(pop_shootings$weapon),
+  signs_of_mental_illness=as.factor(pop_shootings$signs_of_mental_illness),
+  threat_level=as.factor(pop_shootings$threat_level),
+  flee=as.factor(pop_shootings$flee),
+  race=as.factor(pop_shootings$race),
+  year=as.factor(pop_shootings$year)
+)
+library(caTools)
+#test/train/validate for Random Forest
+split = sample.split(shooting_rf, SplitRatio = 0.80)
+train = subset(shooting_rf, split == TRUE)
+test = subset(shooting_rf, split == FALSE)
+
+set.seed(1234)
+trainIndex = createDataPartition(shootingsDF$threat_level,p=.6,list=F)
+
+train = shooting_rf[trainIndex,]
+test = shooting_rf[-trainIndex,]
+
+model <- randomForest(threat_level ~  ., data = train, importance=TRUE, ntree=50) 
+importance=importance(model)
+varImpPlot(model)
+
+pred_rf <- predict(model, test)
+
+#inserting predictions into test
+test$pred<-predict(model, test)
+confusionMatrix(test$threat_level, test$pred)
+
+d <- ggplot(test, aes(threat_level, pred), alpha=0.5)+ ggtitle("Actual vs. Predicted Random Forest")+ theme_minimal() + ylab("Predicted Threat Level")+ xlab("Actual Threat Level")+ geom_point(aes(), alpha = 1/10)+geom_count()
+d 
+
+train = subset(train, select = -c(gedner) )
+test = subset(test, select = -c(body_camera) )
+
+model <- randomForest(threat_level ~  ., data = train, importance=TRUE, ntree=50) 
+importance=importance(model)
+varImpPlot(model)
+
+#inserting predictions into test
+test$pred<-predict(model, test)
+confusionMatrix(test$threat_level, test$pred)
+
+d <- ggplot(test, aes(threat_level, pred), alpha=0.5)+ ggtitle("Actual vs. Predicted Random Forest")+ theme_minimal() + ylab("Predicted Threat Level")+ xlab("Actual Threat Level")+ geom_point(aes(), alpha = 1/10)+geom_count()
+d 
+
+model <- randomForest(threat_level ~  ., data = train, importance=TRUE, ntree=50) 
+importance=importance(model)
+varImpPlot(model)
+
+boruta.train <- Boruta(threat_level~., data = shooting_rf, doTrace = 2)
+#plot of feature selection for random forest
+plot(boruta.train, xlab = "", xaxt = "n")
+
+lz<-lapply(1:ncol(boruta.train$ImpHistory),function(i)
+  boruta.train$ImpHistory[is.finite(boruta.train$ImpHistory[,i]),i])
+names(lz) <- colnames(boruta.train$ImpHistory)
+Labels <- sort(sapply(lz,median))
+axis(side = 1,las=2,labels = names(Labels),
+     at = 1:ncol(boruta.train$ImpHistory), cex.axis = 0.7)
+#all attributes selected were deemed imporant
+final.boruta <- TentativeRoughFix(boruta.train)
+print(final.boruta)
+plot(final.boruta)
+
+ggplot() +
+  geom_polygon(data = usa, aes(x=longitude, y = latitude, group = group),color = "white", fill="grey", alpha=0.3) +
+  geom_point( data=sh, aes(x=longitude, y=latitude, color=race, size=victims,  alpha=0.5)) +
+  scale_color_viridis(option="viridis", discrete=TRUE, name="Race" ) +
+  theme_void() +
+  scale_size(range = c(1, 10), name=" # of victims")+
+  ggtitle("Number of victims by race")
+
+p <- ggplot() +
+  geom_polygon(data = usa, aes(x=longitude, y = latitude, group = group),color = "white", fill="grey", alpha=0.3) +
+geom_point( data=sh, aes(x=longitude, y=latitude, color=race, size=victims,  alpha=0.5)) +
+  scale_color_viridis_d(option="viridis", name="Race" ) +
+  theme_void() +
+  scale_size(range = c(2, 20), name=" # of beers")+
+  ggtitle("Number of Victims by Race \n {closest_state}")+
+  theme(text = element_text(size=20))+
+  transition_states(Race) +
+  enter_fade() + 
+  enter_grow() +
+  ease_aes('sine-in-out')
+animate(p, width = 900, height = 572, duration = 14)
