@@ -261,6 +261,170 @@ testing = shootingsDF[-trainIndex,]
 ################################################################################
 # Kendall
 ################################################################################
+pop_shootings<-shootingsDF
+#% by body camera
+ggplot(pop_shootings, aes(x=as.factor(race), fill=as.factor(body_camera)))+
+  geom_bar(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..]), position="stack" , width=0.9) +
+  geom_text(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..], label=scales::percent(..count../tapply(..count.., ..x.. ,sum)[..x..]) ),
+            stat="count", position=position_stack(0.9),
+            color = "black")+
+  xlab('Race') +
+  ylab('Body Camera')+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 7))+
+  scale_fill_viridis(option="viridis", discrete=TRUE, name="Body Camera", alpha=0.75 )+
+  theme_classic()
+                   
+#body camera and threat level
+ggplot(pop_shootings, aes(x=as.factor(threat_level), fill=body_camera))+
+  geom_bar(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..]), position="stack" , width=0.9) +
+  geom_text(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..], label=scales::percent(..count../tapply(..count.., ..x.. ,sum)[..x..]) ),
+            stat="count", position=position_stack(0.9), color = "black")+
+  xlab('Threat Level') +
+  ylab('Body Camera')+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 7))+
+  scale_fill_viridis(option="viridis", discrete=TRUE, name="Body Camera", alpha=0.75 )+
+  theme_classic()
+ #overal by year                  
+g <- ggplot(pop_shootings, aes(year))
+                   
+g + geom_bar(aes(fill=year))+
+  scale_fill_viridis(option="viridis", discrete=FALSE, name="Body Camera", alpha=0.75 )
+ggplot(pop_shootings,aes(x=year))+
+  geom_bar(stat='count')+
+  ylab('# of Victims')+
+  theme_classic()+
+  scale_fill_viridis(option="viridis", discrete=FALSE, name="Body Camera", alpha=0.75 )
+
+#comparisons by race for threat level
+threat_not_black<-pop_shootings %>%
+  filter(race != "Black")%>% 
+  group_by(armed,threat_level) %>%
+  summarise(cnt=n()) %>%
+  mutate(perc=round(cnt/sum(cnt),4))%>%
+  arrange(desc(threat_level),desc(perc))
+threat<-pop_shootings %>%
+  filter(race == "Black")%>% 
+  group_by(armed,threat_level) %>%
+  summarise(cnt=n()) %>%
+  mutate(perc=round(cnt/sum(cnt),4))%>%
+  arrange(desc(threat_level),desc(perc))
+threat_not_black$group<-"Not Black"
+threat$group<-"Black"
+
+threat<-threat%>%filter(threat_level == "attack")
+threat_not_black<-threat_not_black%>%filter(threat_level == "attack")
+threat<-rbind(threat_not_black, threat)
+
+ggplot(threat, aes(x=reorder(armed,-perc),y=perc, fill=perc))+ geom_bar(aes(fill=perc),show.legend=T,stat="identity")+
+  ylab("Threat Level")+
+  xlab("Armed Type") +scale_fill_viridis(option="viridis", discrete=FALSE, name="Percent at Attack Threat Level", alpha=0.9 )+ theme_classic()+facet_wrap(~group)+coord_flip()
+                   
+    gg<- ggplot(threat[c(14:20),],aes(x=reorder(race,-perc),y=perc, fill=perc))+
+    geom_bar(aes(fill=perc),show.legend=T,stat="identity")+
+    ylab("Threat Level")+
+    xlab("Race") +scale_fill_viridis(option="viridis", discrete=FALSE, name="Percent of Attack Threat", alpha=0.9 )+ theme_classic()+facet_wrap(~group)
+  gg+coord_flip()
+                   
+ggplot(pop_shootings, aes(x=as.factor(armed), fill=threat_level))+
+  geom_bar(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..]), position="stack" , width=0.9) +
+  geom_text(aes( y=..count../tapply(..count.., ..x.. ,sum)[..x..], label=scales::percent(..count../tapply(..count.., ..x.. ,sum)[..x..]) ), stat="count", position=position_stack(0.9),
+            color = "black")+
+  xlab('Armed Type') +
+  ylab('Threat Level')+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 7))+
+  scale_fill_viridis(option="viridis", discrete=TRUE, name="Threat Level", alpha=0.75 )+
+  theme_classic()
+
+threat<-pop_shootings %>% 
+  group_by(armed,threat_level, race) %>%
+  summarise(cnt=n()) %>%
+  mutate(perc=round(cnt/sum(cnt),4))%>%
+  arrange(desc(threat_level),desc(perc))
+                   
+ #rf data prep                  
+ shooting_rf = data.frame(   
+  manner_of_death=as.factor(shootingsDF$manner_of_death),
+  armed=as.factor(shootingsDF$armed),
+  #signs_of_mental_illness=as.factor(shootingsDF$signs_of_mental_illness),
+  threat_level=as.factor(shootingsDF$threat_level),
+  flee=as.factor(shootingsDF$flee),
+ race=as.factor(shootingsDF$race),
+  #year=as.factor(year(shootingsDF$date)), 
+  LawEnforcementPerCapita=as.factor(shootingsDF$LawEnforcementPerCapita)
+)
+library(caTools)
+#test/train/validate for Random Forest
+set.seed(1234)
+trainIndex = createDataPartition(shootingsDF$threat_level,p=.8,list=F)
+
+training = shooting_rf[trainIndex,]
+testing = shooting_rf[-trainIndex,]
+
+model <- randomForest(threat_level ~  ., data = training, importance=TRUE, ntree=50) 
+importance=importance(model)
+varImpPlot(model)
+
+pred_rf <- predict(model, testing)
+
+#inserting predictions into test
+testing$pred<-predict(model, testing)
+confusionMatrix(testing$threat_level, testing$pred)
+
+d <- ggplot(testing, aes(threat_level, pred), alpha=0.5)+ ggtitle("Actual vs. Predicted Random Forest")+ theme_minimal() + ylab("Predicted Threat Level")+ xlab("Actual Threat Level")+ geom_point(aes(), alpha = 1/10)+geom_count()
+d 
+                   
+require(pROC)
+rf.roc<-roc(train$threat_level,model.rf$votes[,1])
+plot(rf.roc)
+auc(rf.roc)
+                   
+#rf minus race column
+ shooting_rf = data.frame(   
+  manner_of_death=as.factor(shootingsDF$manner_of_death),
+  armed=as.factor(shootingsDF$armed),
+  #signs_of_mental_illness=as.factor(shootingsDF$signs_of_mental_illness),
+  threat_level=as.factor(shootingsDF$threat_level),
+  flee=as.factor(shootingsDF$flee),
+  #race=as.factor(shootingsDF$race),
+  #year=as.factor(year(shootingsDF$date)), 
+  LawEnforcementPerCapita=as.factor(shootingsDF$LawEnforcementPerCapita)
+)
+library(caTools)
+#test/train/validate for Random Forest
+set.seed(1234)
+trainIndex = createDataPartition(shootingsDF$threat_level,p=.8,list=F)
+
+training = shooting_rf[trainIndex,]
+testing = shooting_rf[-trainIndex,]
+
+model <- randomForest(threat_level ~  ., data = training, importance=TRUE, ntree=50) 
+importance=importance(model)
+varImpPlot(model)
+
+pred_rf <- predict(model, testing)
+
+#inserting predictions into test
+testing$pred<-predict(model, testing)
+confusionMatrix(testing$threat_level, testing$pred)
+
+d <- ggplot(testing, aes(threat_level, pred), alpha=0.5)+ ggtitle("Actual vs. Predicted Random Forest")+ theme_minimal() + ylab("Predicted Threat Level")+ xlab("Actual Threat Level")+ geom_point(aes(), alpha = 1/10)+geom_count()
+d 
+#boruta selection, not used in presentation
+boruta.train <- Boruta(threat_level~., data = shooting_rf, doTrace = 2)
+#plot of feature selection for random forest
+plot(boruta.train, xlab = "", xaxt = "n")
+
+lz<-lapply(1:ncol(boruta.train$ImpHistory),function(i)
+  boruta.train$ImpHistory[is.finite(boruta.train$ImpHistory[,i]),i])
+names(lz) <- colnames(boruta.train$ImpHistory)
+Labels <- sort(sapply(lz,median))
+axis(side = 1,las=2,labels = names(Labels),
+     at = 1:ncol(boruta.train$ImpHistory), cex.axis = 0.7)
+           
+#all attributes selected were deemed imporant-- was mentioned in presentation, but removed from slides
+final.boruta <- TentativeRoughFix(boruta.train)
+print(final.boruta)
+plot(final.boruta)
 
 ################################################################################
 # Varun
