@@ -11,6 +11,7 @@ library(caret)
 library(sjPlot)
 library(lubridate)
 library(pROC)
+library(caTools)
 
 ################################################################################
 # Fatal Shootings
@@ -352,7 +353,24 @@ threat<-pop_shootings %>%
   #year=as.factor(year(shootingsDF$date)), 
   LawEnforcementPerCapita=as.factor(shootingsDF$LawEnforcementPerCapita)
 )
-library(caTools)
+                   
+#boruta selection, not used in presentation
+boruta.train <- Boruta(threat_level~., data = shooting_rf, doTrace = 2)
+#plot of feature selection for random forest
+plot(boruta.train, xlab = "", xaxt = "n")
+
+lz<-lapply(1:ncol(boruta.train$ImpHistory),function(i)
+  boruta.train$ImpHistory[is.finite(boruta.train$ImpHistory[,i]),i])
+names(lz) <- colnames(boruta.train$ImpHistory)
+Labels <- sort(sapply(lz,median))
+axis(side = 1,las=2,labels = names(Labels),
+     at = 1:ncol(boruta.train$ImpHistory), cex.axis = 0.7)
+           
+#all attributes selected were deemed imporant-- was mentioned in presentation, but removed from slides
+final.boruta <- TentativeRoughFix(boruta.train)
+print(final.boruta)
+plot(final.boruta)
+
 #test/train/validate for Random Forest
 set.seed(1234)
 trainIndex = createDataPartition(shootingsDF$threat_level,p=.8,list=F)
@@ -382,11 +400,8 @@ auc(rf.roc)
  shooting_rf = data.frame(   
   manner_of_death=as.factor(shootingsDF$manner_of_death),
   armed=as.factor(shootingsDF$armed),
-  #signs_of_mental_illness=as.factor(shootingsDF$signs_of_mental_illness),
   threat_level=as.factor(shootingsDF$threat_level),
   flee=as.factor(shootingsDF$flee),
-  #race=as.factor(shootingsDF$race),
-  #year=as.factor(year(shootingsDF$date)), 
   LawEnforcementPerCapita=as.factor(shootingsDF$LawEnforcementPerCapita)
 )
 library(caTools)
@@ -409,22 +424,6 @@ confusionMatrix(testing$threat_level, testing$pred)
 
 d <- ggplot(testing, aes(threat_level, pred), alpha=0.5)+ ggtitle("Actual vs. Predicted Random Forest")+ theme_minimal() + ylab("Predicted Threat Level")+ xlab("Actual Threat Level")+ geom_point(aes(), alpha = 1/10)+geom_count()
 d 
-#boruta selection, not used in presentation
-boruta.train <- Boruta(threat_level~., data = shooting_rf, doTrace = 2)
-#plot of feature selection for random forest
-plot(boruta.train, xlab = "", xaxt = "n")
-
-lz<-lapply(1:ncol(boruta.train$ImpHistory),function(i)
-  boruta.train$ImpHistory[is.finite(boruta.train$ImpHistory[,i]),i])
-names(lz) <- colnames(boruta.train$ImpHistory)
-Labels <- sort(sapply(lz,median))
-axis(side = 1,las=2,labels = names(Labels),
-     at = 1:ncol(boruta.train$ImpHistory), cex.axis = 0.7)
-           
-#all attributes selected were deemed imporant-- was mentioned in presentation, but removed from slides
-final.boruta <- TentativeRoughFix(boruta.train)
-print(final.boruta)
-plot(final.boruta)
 
 ################################################################################
 # Varun
